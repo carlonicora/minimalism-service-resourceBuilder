@@ -1,8 +1,8 @@
 version: '3.7'
 
 services:
-  minimalism-resource-builder:
-    container_name: minimalism-resource-builder
+  minimalism-service-resource-builder:
+    container_name: minimalism-service-resource-builder
     image: carlonicora/php-cli-base:7.4.3.2
     working_dir: /app
     volumes:

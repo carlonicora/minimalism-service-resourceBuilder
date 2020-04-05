@@ -1,11 +1,11 @@
 <?php
 namespace carlonicora\minimalism\services\resourceBuilder\abstracts;
 
+use carlonicora\minimalism\core\services\exceptions\serviceNotFoundException;
 use carlonicora\minimalism\core\services\factories\servicesFactory;
-use carlonicora\minimalism\core\jsonapi\resources\resourceObject;
-use carlonicora\minimalism\core\jsonapi\resources\resourceRelationship;
+use carlonicora\minimalism\modules\jsonapi\resources\resourceObject;
+use carlonicora\minimalism\modules\jsonapi\resources\resourceRelationship;
 use carlonicora\minimalism\services\encrypter\encrypter;
-use carlonicora\minimalism\services\resourceBuilder\factories\serviceFactory;
 use carlonicora\minimalism\services\resourceBuilder\interfaces\resourceBuilderInterface;
 use carlonicora\minimalism\services\resourceBuilder\resourceBuilder;
 
@@ -39,6 +39,7 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
      * abstractBusinessObject constructor.
      * @param servicesFactory $services
      * @param array $data
+     * @throws serviceNotFoundException
      */
     public function __construct(servicesFactory $services, array $data) {
         $this->services = $services;
@@ -84,6 +85,7 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
     /**
      * @return resourceObject
+     * @throws serviceNotFoundException
      */
     public function buildResource(): resourceObject {
         $meta = $this->getMeta();
@@ -101,11 +103,12 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
     /**
      * @return string
+     * @throws serviceNotFoundException
      */
     protected function getId(): string {
         if (in_array($this->idField, $this->hashEncodedFields, true)) {
             /** @var encrypter $encrypter */
-            $encrypter = $this->services->service(\carlonicora\minimalism\services\encrypter\factories\serviceFactory::class);
+            $encrypter = $this->services->service(encrypter::class);
             return  $encrypter->encryptId((int)$this->data[$this->idField]);
         }
 
@@ -121,10 +124,11 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
     /**
      * @return array
+     * @throws serviceNotFoundException
      */
     protected function getAttributes(): ?array {
         /** @var encrypter $encrypter */
-        $encrypter = $this->services->service(\carlonicora\minimalism\services\encrypter\factories\serviceFactory::class);
+        $encrypter = $this->services->service(encrypter::class);
 
         $attributes = [];
         foreach ($this->hashEncodedFields as $hashEncodedField) {
@@ -150,10 +154,11 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
     /**
      * @return array
+     * @throws serviceNotFoundException
      */
     protected function getRelationships(): ?array {
         /** @var resourceBuilder $resourceBuilder */
-        $resourceBuilder = $this->services->service(serviceFactory::class);
+        $resourceBuilder = $this->services->service(resourceBuilder::class);
 
         $relationships = [];
         foreach ($this->oneToOneRelationFields as $relationFieldName => $config) {
