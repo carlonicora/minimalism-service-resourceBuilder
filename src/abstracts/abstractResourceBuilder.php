@@ -13,21 +13,24 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
     /** @var servicesFactory  */
     protected servicesFactory $services;
 
-    /** @var string */
-    public string $idField;
-    /** @var string */
-    public string $parentId;
+    /**
+     * FIELD PARAMETERS AND DEFINITION
+     *
+     * 'key' | string | required name of the field
+     *
+     * 'values'
+     * id | bool | if set, defines if the field is the id field for the object
+     * encrypted | bool | if set, defines if the field is encrypted
+     * method | string | if set, defines the method used to generate the custom field
+     */
 
     /** @var array */
-    protected array $hashEncodedFields = [];
-    /** @var array */
-    protected array $simpleFields = [];
+    protected array $fields = [];
+
     /** @var array */
     protected array $oneToOneRelationFields = [];
     /** @var array */
     protected array $toManyRelationFields = [];
-    /** @var array */
-    protected array $customFields = [];
 
     /** @var resourceObject */
     public resourceObject $resource;
@@ -105,14 +108,20 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
      * @return string
      * @throws serviceNotFoundException
      */
-    protected function getId(): string {
-        if (in_array($this->idField, $this->hashEncodedFields, true)) {
-            /** @var encrypter $encrypter */
-            $encrypter = $this->services->service(encrypter::class);
-            return  $encrypter->encryptId((int)$this->data[$this->idField]);
+    protected function getId(): ?string {
+        foreach ($this->fields as $fieldName => $fieldAttributes){
+            if (array_key_exists('id', $fieldAttributes) && $fieldAttributes['id'] === true){
+                if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
+                    /** @var encrypter $encrypter */
+                    $encrypter = $this->services->service(encrypter::class);
+                    return $encrypter->encryptId((int)$this->data[$fieldName]);
+                }
+
+                return $this->data[$fieldName];
+            }
         }
 
-        return $this->data[$this->idField];
+        return null;
     }
 
     /**
@@ -131,22 +140,14 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
         $encrypter = $this->services->service(encrypter::class);
 
         $attributes = [];
-        foreach ($this->hashEncodedFields as $hashEncodedField) {
-            if (false === empty($this->data[$hashEncodedField]) && $this->idField !== $hashEncodedField) {
-                $attributes[$hashEncodedField] = $encrypter->encryptId((int)$this->data[$hashEncodedField]);
+        foreach ($this->fields as $fieldName => $fieldAttributes){
+            if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
+                $attributes[$fieldName] = $encrypter->encryptId((int)$this->data[$fieldName]);
+            } else if (array_key_exists('method', $fieldAttributes)) {
+                $attributes[$fieldName] = $this->{$fieldAttributes['method']}($this->data);
+            } else if ($this->data[$fieldName] !== null) {
+                $attributes[$fieldName] = $this->data[$fieldName];
             }
-        }
-
-        foreach ($this->simpleFields as $simpleField) {
-            if (isset($this->data[$simpleField]) && $this->data[$simpleField] !== null && !array_key_exists($simpleField, $attributes)) {
-                $attributes[$simpleField] = $this->data[$simpleField];
-            } else {
-                $attributes[$simpleField] = null;
-            }
-        }
-
-        foreach ($this->customFields as $customField) {
-            $attributes[$customField] = $this->$customField($this->data);
         }
 
         return $attributes ?? null;
