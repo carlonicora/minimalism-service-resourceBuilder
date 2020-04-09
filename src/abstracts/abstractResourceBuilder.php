@@ -8,6 +8,7 @@ use carlonicora\minimalism\modules\jsonapi\resources\resourceRelationship;
 use carlonicora\minimalism\services\encrypter\encrypter;
 use carlonicora\minimalism\services\resourceBuilder\interfaces\resourceBuilderInterface;
 use carlonicora\minimalism\services\resourceBuilder\resourceBuilder;
+use RuntimeException;
 
 abstract class abstractResourceBuilder implements resourceBuilderInterface {
     /** @var servicesFactory  */
@@ -141,11 +142,15 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
         $attributes = [];
         foreach ($this->fields as $fieldName => $fieldAttributes){
+            if (false === is_array($fieldAttributes)) {
+                throw new RuntimeException($fieldName . ' field of ' . static::class . ' is not configured properly', 500);
+            }
+
             if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
                 $attributes[$fieldName] = $encrypter->encryptId((int)$this->data[$fieldName]);
             } else if (array_key_exists('method', $fieldAttributes)) {
                 $attributes[$fieldName] = $this->{$fieldAttributes['method']}($this->data);
-            } else if ($this->data[$fieldName] !== null) {
+            } else if (isset($this->data[$fieldName]) && $this->data[$fieldName] !== null) {
                 $attributes[$fieldName] = $this->data[$fieldName];
             }
         }
