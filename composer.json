@@ -1,12 +1,12 @@
 {
   "name": "carlonicora/minimalism-service-resource-builder",
   "description": "Resource Builder service for minimalism",
-  "version": "1.0.0-beta6",
+  "version": "1.0.0",
   "homepage": "https://carlonicora.com",
   "time": "2020-04-04",
   "license": "MIT",
   "type": "library",
-  "minimum-stability": "beta",
+  "minimum-stability": "stable",
   "authors": [
     {
       "name": "Carlo Nicora",
