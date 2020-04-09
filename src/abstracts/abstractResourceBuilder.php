@@ -3,8 +3,8 @@ namespace carlonicora\minimalism\services\resourceBuilder\abstracts;
 
 use carlonicora\minimalism\core\services\exceptions\serviceNotFoundException;
 use carlonicora\minimalism\core\services\factories\servicesFactory;
-use carlonicora\minimalism\modules\jsonapi\resources\resourceObject;
-use carlonicora\minimalism\modules\jsonapi\resources\resourceRelationship;
+use carlonicora\minimalism\service\jsonapi\resources\resourceObject;
+use carlonicora\minimalism\service\jsonapi\resources\resourceRelationship;
 use carlonicora\minimalism\services\encrypter\encrypter;
 use carlonicora\minimalism\services\resourceBuilder\interfaces\resourceBuilderInterface;
 use carlonicora\minimalism\services\resourceBuilder\resourceBuilder;

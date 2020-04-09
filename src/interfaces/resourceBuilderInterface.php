@@ -1,7 +1,7 @@
 <?php
 namespace carlonicora\minimalism\services\resourceBuilder\interfaces;
 
-use carlonicora\minimalism\modules\jsonapi\resources\resourceObject;
+use carlonicora\minimalism\service\jsonapi\resources\resourceObject;
 
 interface resourceBuilderInterface {
     /**
