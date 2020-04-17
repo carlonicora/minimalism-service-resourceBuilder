@@ -146,11 +146,18 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
                 throw new RuntimeException($fieldName . ' field of ' . static::class . ' is not configured properly', 500);
             }
 
+            if (false === empty($fieldAttributes['id'])
+                || false === isset($this->data[$fieldName])
+                || null === $this->data[$fieldName]
+            ) {
+                continue;
+            }
+
             if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
                 $attributes[$fieldName] = $encrypter->encryptId((int)$this->data[$fieldName]);
             } else if (array_key_exists('method', $fieldAttributes)) {
                 $attributes[$fieldName] = $this->{$fieldAttributes['method']}($this->data);
-            } else if (isset($this->data[$fieldName]) && $this->data[$fieldName] !== null) {
+            } else if (isset($this->data[$fieldName])) {
                 $attributes[$fieldName] = $this->data[$fieldName];
             }
         }
