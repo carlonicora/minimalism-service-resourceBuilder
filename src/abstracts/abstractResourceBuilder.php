@@ -153,7 +153,9 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
             if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
                 $attributes[$fieldName] = $encrypter->encryptId((int)$this->data[$fieldName]);
             } elseif (array_key_exists('method', $fieldAttributes)) {
-                $attributes[$fieldName] = $this->{$fieldAttributes['method']}($this->data);
+                if (($fieldValue = $this->{$fieldAttributes['method']}($this->data)) !== null) {
+                    $attributes[$fieldName] = $fieldValue;
+                }
             } elseif (isset($this->data[$fieldName])) {
                 $attributes[$fieldName] = $this->data[$fieldName];
             }
