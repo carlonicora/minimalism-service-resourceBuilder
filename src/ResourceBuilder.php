@@ -5,12 +5,12 @@ use CarloNicora\Minimalism\Core\Services\Abstracts\AbstractService;
 use CarloNicora\Minimalism\Core\Services\Factories\ServicesFactory;
 use CarloNicora\Minimalism\Core\Services\Interfaces\ServiceConfigurationsInterface;
 use CarloNicora\Minimalism\Services\Encrypter\Encrypter;
-use CarloNicora\Minimalism\Services\ResourceBuilder\Configurations\ResourceBuilderConfigurations;
+use CarloNicora\Minimalism\Services\ResourceBuilder\Configurations\resourceBuilderConfigurations;
 use CarloNicora\Minimalism\Services\ResourceBuilder\Interfaces\ResourceBuilderInterface;
 
 class ResourceBuilder extends AbstractService {
-    /** @var ResourceBuilderConfigurations  */
-    private ResourceBuilderConfigurations $configData;
+    /** @var resourceBuilderConfigurations  */
+    private resourceBuilderConfigurations $configData;
 
     /**
      * abstractApiCaller constructor.
