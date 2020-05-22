@@ -1,18 +1,19 @@
 <?php
-namespace carlonicora\minimalism\services\resourceBuilder\abstracts;
+namespace CarloNicora\Minimalism\Services\ResourceBuilder\Abstracts;
 
-use carlonicora\minimalism\core\services\exceptions\serviceNotFoundException;
-use carlonicora\minimalism\core\services\factories\servicesFactory;
-use carlonicora\minimalism\services\jsonapi\resources\resourceObject;
-use carlonicora\minimalism\services\jsonapi\resources\resourceRelationship;
-use carlonicora\minimalism\services\encrypter\encrypter;
-use carlonicora\minimalism\services\resourceBuilder\interfaces\resourceBuilderInterface;
-use carlonicora\minimalism\services\resourceBuilder\resourceBuilder;
+use CarloNicora\JsonApi\Objects\Relationship;
+use CarloNicora\JsonApi\Objects\ResourceObject;
+use CarloNicora\Minimalism\Core\Services\Exceptions\ServiceNotFoundException;
+use CarloNicora\Minimalism\Core\Services\Factories\ServicesFactory;
+use CarloNicora\Minimalism\Services\Encrypter\Encrypter;
+use CarloNicora\Minimalism\Services\ResourceBuilder\Interfaces\ResourceBuilderInterface;
+use CarloNicora\Minimalism\Services\ResourceBuilder\ResourceBuilder;
+use Exception;
 use RuntimeException;
 
-abstract class abstractResourceBuilder implements resourceBuilderInterface {
-    /** @var servicesFactory  */
-    protected servicesFactory $services;
+abstract class AbstractResourceBuilder implements ResourceBuilderInterface {
+    /** @var ServicesFactory  */
+    protected ServicesFactory $services;
 
     /**
      * FIELD PARAMETERS AND DEFINITION
@@ -33,32 +34,36 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
     /** @var array */
     protected array $toManyRelationFields = [];
 
-    /** @var resourceObject */
-    public resourceObject $resource;
+    /** @var ResourceObject */
+    public ResourceObject $resource;
 
     /** @var array  */
     protected array $data;
 
+    /** @var Encrypter */
+    protected Encrypter $encrypter;
+
+    /** @var ResourceBuilder */
+    protected ResourceBuilder $resourceBuilder;
+
     /**
-     * abstractBusinessObject constructor.
-     * @param servicesFactory $services
+     * AbstractResourceBuilder constructor.
+     * @param ResourceBuilder $resourceBuilder
+     * @param Encrypter $encrypter
      * @param array $data
-     * @throws serviceNotFoundException
+     * @throws Exception
      */
-    public function __construct(servicesFactory $services, array $data) {
-        $this->services = $services;
+    public function __construct(ResourceBuilder $resourceBuilder, Encrypter $encrypter, array $data) {
+        $this->resourceBuilder = $resourceBuilder;
+        $this->encrypter = $encrypter;
 
         $this->data = $data;
 
-        $resourceArray = [
-            'id' => $this->getId(),
-            'type' => $this->getType(),
-            'attributes' => $this->getAttributes(),
-        ];
-        $this->resource = new resourceObject($resourceArray);
+        $this->resource = new ResourceObject($this->getType(), $this->getId());
+        $this->resource->attributes->importArray($this->getAttributes());
 
-        $this->resource->addMetas($this->buildMeta());
-        $this->resource->addLinks($this->buildLinks());
+        $this->resource->meta->importArray($this->buildMeta());
+        $this->resource->links->importArray($this->buildLinks());
 
         foreach ($this->oneToOneRelationFields as $toOneResourceBuilderKey => $toOneResourceBuilderClass) {
             if (false === is_array($toOneResourceBuilderClass)) {
@@ -88,18 +93,18 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
     }
 
     /**
-     * @return resourceObject
-     * @throws serviceNotFoundException
+     * @return ResourceObject
+     * @throws Exception
      */
-    public function buildResource(): resourceObject {
+    public function buildResource(): ResourceObject {
         $meta = $this->getMeta();
         if (false === empty($meta)) {
-            $this->resource->addMetas($meta);
+            $this->resource->meta->importArray($meta);
         }
 
         $relationships = $this->getRelationships();
         if (false === empty($relationships)) {
-            $this->resource->addRelationshipList($relationships);
+            $this->resource->relationships = $relationships;
         }
 
         return $this->resource;
@@ -107,15 +112,13 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
 
     /**
      * @return string
-     * @throws serviceNotFoundException
+     * @throws ServiceNotFoundException
      */
     protected function getId(): ?string {
         foreach ($this->fields as $fieldName => $fieldAttributes){
             if (array_key_exists('id', $fieldAttributes) && $fieldAttributes['id'] === true){
                 if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
-                    /** @var encrypter $encrypter */
-                    $encrypter = $this->services->service(encrypter::class);
-                    return $encrypter->encryptId((int)$this->data[$fieldName]);
+                    return $this->encrypter->encryptId((int)$this->data[$fieldName]);
                 }
 
                 return $this->data[$fieldName];
@@ -137,9 +140,6 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
      * @throws serviceNotFoundException
      */
     protected function getAttributes(): ?array {
-        /** @var encrypter $encrypter */
-        $encrypter = $this->services->service(encrypter::class);
-
         $attributes = [];
         foreach ($this->fields as $fieldName => $fieldAttributes){
             if (false === is_array($fieldAttributes)) {
@@ -151,7 +151,7 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
             }
 
             if (array_key_exists('encrypted', $fieldAttributes) && $fieldAttributes['encrypted'] === true){
-                $attributes[$fieldName] = $encrypter->encryptId((int)$this->data[$fieldName]);
+                $attributes[$fieldName] = $this->encrypter->encryptId((int)$this->data[$fieldName]);
             } elseif (array_key_exists('method', $fieldAttributes)) {
                 if (($fieldValue = $this->{$fieldAttributes['method']}($this->data)) !== null) {
                     $attributes[$fieldName] = $fieldValue;
@@ -165,49 +165,48 @@ abstract class abstractResourceBuilder implements resourceBuilderInterface {
     }
 
     /**
-     * @return array
-     * @throws serviceNotFoundException
+     * @return array|null
+     * @throws Exception
      */
     protected function getRelationships(): ?array {
-        /** @var resourceBuilder $resourceBuilder */
-        $resourceBuilder = $this->services->service(resourceBuilder::class);
-
         $relationships = [];
         foreach ($this->oneToOneRelationFields as $relationFieldName => $config) {
             if (false === empty($this->data[$relationFieldName])) {
-                /** @var abstractResourceBuilder $relatedResourceBuilder */
-                $relatedResourceBuilder = $resourceBuilder->create($config['class'], $this->data[$relationFieldName]);
-
-                $relationship = new resourceRelationship($relatedResourceBuilder->resource);
-
-                $relationshipMeta = $this->getRelationshipMeta($relationFieldName);
-                if (false === empty($relationshipMeta)) {
-                    $relationship->addMetas($relationshipMeta);
-                }
-
-                $relationships[$relationFieldName] []= $relationship;
+                /** @var AbstractResourceBuilder $relatedResourceBuilder */
+                $relatedResourceBuilder = $this->resourceBuilder->create($config['class'], $this->data[$relationFieldName]);
+                $relationships[$relationFieldName] []= $this->buildRelationship($relatedResourceBuilder, $relationFieldName);
             }
         }
 
         foreach ($this->toManyRelationFields as $relationFieldName => $config) {
             if (false === empty($this->data[$relationFieldName])) {
-                /** @var abstractResourceBuilder $relatedResourceBuilder */
+                /** @var AbstractResourceBuilder $relatedResourceBuilder */
                 foreach ($this->data[$relationFieldName] as $relatedData) {
-                    $relatedResourceBuilder = $resourceBuilder->create($config['class'], $relatedData);
-
-                    $relationship = new resourceRelationship($relatedResourceBuilder->resource);
-
-                    $relationshipMeta = $this->getRelationshipMeta($relationFieldName);
-                    if (false === empty($relationshipMeta)) {
-                        $relationship->addMetas($relationshipMeta);
-                    }
-
-                    $relationships[$relationFieldName] []= $relationship;
+                    $relatedResourceBuilder = $this->resourceBuilder->create($config['class'], $relatedData);
+                    $relationships[$relationFieldName] []= $this->buildRelationship($relatedResourceBuilder, $relationFieldName);
                 }
             }
         }
 
         return $relationships ?? null;
+    }
+
+    /**
+     * @param AbstractResourceBuilder $relatedResourceBuilder
+     * @param string $relationFieldName
+     * @return Relationship
+     * @throws Exception
+     */
+    private function buildRelationship(AbstractResourceBuilder $relatedResourceBuilder, string $relationFieldName): Relationship {
+        $relationship = new Relationship();
+        $relationship->resourceLinkage->add($relatedResourceBuilder->resource);
+
+        $relationshipMeta = $this->getRelationshipMeta($relationFieldName);
+        if (false === empty($relationshipMeta)) {
+            $relationship->meta->importArray($relationshipMeta);
+        }
+
+        return $relationship;
     }
 
     /**
