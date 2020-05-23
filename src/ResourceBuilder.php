@@ -4,7 +4,7 @@ namespace CarloNicora\Minimalism\Services\ResourceBuilder;
 use CarloNicora\Minimalism\Core\Services\Abstracts\AbstractService;
 use CarloNicora\Minimalism\Core\Services\Factories\ServicesFactory;
 use CarloNicora\Minimalism\Core\Services\Interfaces\ServiceConfigurationsInterface;
-use CarloNicora\Minimalism\Services\Encrypter\Encrypter;
+use CarloNicora\Minimalism\Interfaces\EncrypterInterface;
 use CarloNicora\Minimalism\Services\ResourceBuilder\Configurations\resourceBuilderConfigurations;
 use CarloNicora\Minimalism\Services\ResourceBuilder\Interfaces\ResourceBuilderInterface;
 
@@ -28,10 +28,10 @@ class ResourceBuilder extends AbstractService {
     /**
      * @param string $objectName
      * @param array $data
+     * @param EncrypterInterface|null $encrypter
      * @return ResourceBuilderInterface
      */
-    public function create(string $objectName, array $data) : ResourceBuilderInterface {
-        $encrypter = $this->services->service(Encrypter::class);
-        return new $objectName($this, $encrypter, $data);
+    public function create(string $objectName, array $data, ?EncrypterInterface $encrypter=null) : ResourceBuilderInterface {
+        return new $objectName($this, $this->services, $encrypter, $data);
     }
 }
