@@ -70,6 +70,7 @@ abstract class AbstractResourceBuilder implements ResourceBuilderInterface {
 
     /**
      * @return array
+     * @throws Exception
      */
     protected function buildLinks() : array {
         $response = [];

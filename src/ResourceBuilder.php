@@ -12,6 +12,9 @@ class ResourceBuilder extends AbstractService {
     /** @var resourceBuilderConfigurations  */
     private resourceBuilderConfigurations $configData;
 
+    /** @var EncrypterInterface|null  */
+    private ?EncrypterInterface $defaultEncrypter=null;
+
     /**
      * abstractApiCaller constructor.
      * @param ServiceConfigurationsInterface $configData
@@ -32,6 +35,18 @@ class ResourceBuilder extends AbstractService {
      * @return ResourceBuilderInterface
      */
     public function create(string $objectName, array $data, ?EncrypterInterface $encrypter=null) : ResourceBuilderInterface {
+        if ($encrypter === null && $this->defaultEncrypter !== null){
+            $encrypter = $this->defaultEncrypter;
+        }
+
         return new $objectName($this, $this->services, $encrypter, $data);
+    }
+
+    /**
+     * @param EncrypterInterface|null $defaultEncrypter
+     */
+    public function setDefaultEncrypter(?EncrypterInterface $defaultEncrypter): void
+    {
+        $this->defaultEncrypter = $defaultEncrypter;
     }
 }
